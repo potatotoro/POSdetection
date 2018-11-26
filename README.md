@@ -7,4 +7,5 @@ Requirements
         <li>Imutils == 0.5.1</li>
         <li>NumPy == 1.14.5</li>
         <li>TensorFlow == 1.12.0</li>
-    </ul><p>
+    </ul>
+</p>

@@ -13,6 +13,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('detector')
 detection_graph, sess = detector_utils.load_inference_graph()
 
+## Argument Parser
 parser = argparse.ArgumentParser()
 parser.add_argument(
     '-wd',
@@ -122,13 +123,6 @@ parser.add_argument(
     default='http://192.168.2.32:53258/videostream.cgi?user=admin&pwd=lauretta1',
     help='Path to input video file.')
 parser.add_argument(
-    '-ang',
-    '--angle',
-    dest='rotate_angle',
-    type=int,
-    default=0,
-    help='Rotation Angle of video.')
-parser.add_argument(
     '-hd',
     '--hand(s)',
     dest='num_hands_detect',
@@ -140,7 +134,7 @@ args = parser.parse_args()
 cap = cv2.VideoCapture(args.video)
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 
-# Variables
+## Variables
 im_width, im_height = (args.width, args.height)
 start = time.time()
 t = time.time()
@@ -163,19 +157,13 @@ tnow = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 out = cv2.VideoWriter('transaction-' + tnow + '.avi',
                       fourcc, 30.0, (640, 360))
 
+##################################### MAIN #####################################
 while True:
     ret, image_np = cap.read()
     ori = image_np.copy()
     image_np = cv2.resize(image_np, (args.width, args.height))
-    frame = imutils.rotate_bound(image_np, args.rotate_angle)
-    cv2.imshow('test1', frame)
     frameCB = frame[args.y1_CB:args.y2_CB, args.x1_CB:args.x2_CB]
-    # print(frame.shape)
     maskCB = cv2.inRange(frameCB, np.array(args.LOWERB), np.array(args.UPPERB))
-    #cv2.imshow('test2', maskCB)
-    # print(np.count_nonzero(maskCB))
-    cv2.imshow('test', frameCB)
-    # print(np.count_nonzero(maskCB))
     image_np = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
     image_np1 = np.zeros_like(image_np)
     image_np1[args.y1_ROI:args.y2_ROI,
@@ -186,30 +174,18 @@ while True:
     condCB = np.count_nonzero(maskCB) > args.threshold
     condHand = any([s > args.score_thresh for s in scores])
 
-    #tnow = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-
-    # if isRecording:
-    #    if recordOnce:
-    #        out = cv2.VideoWriter('transaction-' + tnow + '.avi',
-    #                              fourcc, 30.0, (640,360))
-    #        recordOnce = False
-    #    out.write(ori)
-    # else:
-    #    recordOnce = True
-    #    if out is not None:
-    #        out.release()
-
+    # Cashbox CLOSED
     if nearlyEndedTransaction & (np.count_nonzero(maskCB) < args.threshold):
         start = time.time()
         status = 'CASH BOX CLOSED!'
         statusInt = 3
         arr[3] = True
-        #record = False
         startCount = False
         lowerStatus = False
     else:
         arr[3] = False
 
+    # Cashbox OPENED & hand DETECTED
     if boxOpen & condCB & condHand:
         if lowerStatus:
             status = 'HAND DETECTED!'
@@ -227,6 +203,7 @@ while True:
         arr[2] = False
         handUp = False
 
+    # Cashbox OPENED
     if condCB:
         if not(startCount):
             start = time.time()
@@ -241,10 +218,12 @@ while True:
         arr[1] = False
         boxOpen = False
 
+    # No event happened
     if arr == [True, False, False, False]:
         status = 'None'
         statusInt = 0
 
+    # Transaction COMPLETED
     if statusInt != currentStatus:
         currentStatus = statusInt
         logger.info(tnow + ' ' + status + ' ref: %s, STATUS: %s',
@@ -265,9 +244,11 @@ while True:
     cv2.putText(ori, str(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")), (40, 90),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2, cv2.LINE_AA)
 
+    # Video Recording
     if record:
         out.write(ori)
 
+    # Warning if cashbox OPENED for more than 50 seconds
     if startCount and (time.time() - start > 50):
         logger.warning('Cash box opened for more than 50 seconds!')
         record = False
@@ -275,10 +256,10 @@ while True:
     # cv2.rectangle(image_np, (args.x1_ROI,args.y1_ROI),
     #              (args.x2_ROI,args.y2_ROI), (255, 0, 0), 3, 1)
 
-    cv2.imshow('Single-Threaded Detection',
-               cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR))
+    cv2.imshow('Video Stream', cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR))
 
     if cv2.waitKey(1) == 27:
         break
+
 cap.release()
 cv2.destroyAllWindows()

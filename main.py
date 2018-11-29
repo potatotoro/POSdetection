@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('detector')
 detection_graph, sess = detector_utils.load_inference_graph()
 
-## Argument Parser
+# Argument Parser
 parser = argparse.ArgumentParser()
 parser.add_argument(
     '-wd',
@@ -134,7 +134,7 @@ args = parser.parse_args()
 cap = cv2.VideoCapture(args.video)
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 
-## Variables
+# Variables
 im_width, im_height = (args.width, args.height)
 start = time.time()
 t = time.time()
@@ -162,7 +162,7 @@ while True:
     ret, image_np = cap.read()
     ori = image_np.copy()
     image_np = cv2.resize(image_np, (args.width, args.height))
-    frameCB = frame[args.y1_CB:args.y2_CB, args.x1_CB:args.x2_CB]
+    frameCB = image_np[args.y1_CB:args.y2_CB, args.x1_CB:args.x2_CB]
     maskCB = cv2.inRange(frameCB, np.array(args.LOWERB), np.array(args.UPPERB))
     image_np = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
     image_np1 = np.zeros_like(image_np)

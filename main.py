@@ -120,7 +120,7 @@ parser.add_argument(
     '--source',
     dest='video',
     type=str,
-    default='http://192.168.2.32:53258/videostream.cgi?user=admin&pwd=lauretta1',
+    default=r'D:\Lauretta\Storehub\footage1_Trim.mp4',
     help='Path to input video file.')
 parser.add_argument(
     '-hd',
@@ -131,7 +131,7 @@ parser.add_argument(
     help='Max number of hands we want to detect/track.')
 args = parser.parse_args()
 
-cap = cv2.VideoCapture(args.video)
+cap = cv2.VideoCapture(r'D:\Lauretta\Storehub\transaction-2018-11-22-16-08-45.avi')
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 
 # Variables
@@ -222,6 +222,9 @@ while True:
     if arr == [True, False, False, False]:
         status = 'None'
         statusInt = 0
+
+    elif arr == [True, False, False, True]:
+        arr = [True]*4
 
     # Transaction COMPLETED
     if statusInt != currentStatus:

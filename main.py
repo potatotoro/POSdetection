@@ -97,7 +97,7 @@ parser.add_argument(
     '--threshold',
     dest='threshold',
     type=int,
-    default=3,
+    default=100,
     help='Threshold value for cashbox detection')
 parser.add_argument(
     '-LB',
@@ -120,7 +120,7 @@ parser.add_argument(
     '--source',
     dest='video',
     type=str,
-    default=r'D:\Lauretta\Storehub\footage1_Trim.mp4',
+    default='http://192.168.2.32:53258/videostream.cgi?user=admin&pwd=lauretta1',
     help='Path to input video file.')
 parser.add_argument(
     '-hd',
@@ -131,7 +131,7 @@ parser.add_argument(
     help='Max number of hands we want to detect/track.')
 args = parser.parse_args()
 
-cap = cv2.VideoCapture(r'D:\Lauretta\Storehub\transaction-2018-11-22-16-08-45.avi')
+cap = cv2.VideoCapture(args.video)
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 
 # Variables
@@ -155,12 +155,13 @@ out = None
 
 tnow = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 out = cv2.VideoWriter('transaction-' + tnow + '.avi',
-                      fourcc, 30.0, (640, 360))
+                      fourcc, 30.0, (args.width, args.height))
 
 ##################################### MAIN #####################################
 while True:
     ret, image_np = cap.read()
     ori = image_np.copy()
+    ori = cv2.resize(ori, (args.width, args.height))
     image_np = cv2.resize(image_np, (args.width, args.height))
     frameCB = image_np[args.y1_CB:args.y2_CB, args.x1_CB:args.x2_CB]
     maskCB = cv2.inRange(frameCB, np.array(args.LOWERB), np.array(args.UPPERB))
@@ -170,10 +171,13 @@ while True:
               args.x1_ROI:args.x2_ROI] = image_np[args.y1_ROI:args.y2_ROI, args.x1_ROI:args.x2_ROI]
     boxes, scores = detector_utils.detect_objects(image_np1,
                                                   detection_graph, sess)
+    #print('s', scores)
 
     condCB = np.count_nonzero(maskCB) > args.threshold
     condHand = any([s > args.score_thresh for s in scores])
-
+    for i in range(args.num_hands_detect):
+        detector_utils.draw_box_on_image(i, boxes, im_width,
+                                         im_height, image_np)
     # Cashbox CLOSED
     if nearlyEndedTransaction & (np.count_nonzero(maskCB) < args.threshold):
         start = time.time()
@@ -256,12 +260,15 @@ while True:
         logger.warning('Cash box opened for more than 50 seconds!')
         record = False
 
-    # cv2.rectangle(image_np, (args.x1_ROI,args.y1_ROI),
-    #              (args.x2_ROI,args.y2_ROI), (255, 0, 0), 3, 1)
+    cv2.rectangle(image_np, (args.x1_ROI,args.y1_ROI),
+                 (args.x2_ROI,args.y2_ROI), (255, 0, 0), 3, 1)
+    cv2.rectangle(image_np, (args.x1_CB,args.y1_CB),
+                 (args.x2_CB,args.y2_CB), (0, 0, 255), 3, 1)
 
     cv2.imshow('Video Stream', cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR))
+    cv2.imshow('ori', ori)
 
-    if cv2.waitKey(1) == 27:
+    if cv2.waitKey(10) == 27:
         break
 
 cap.release()
